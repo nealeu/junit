@@ -17,7 +17,8 @@ import org.junit.internal.runners.statements.FailOnTimeout;
 import org.junit.internal.runners.statements.InvokeMethod;
 import org.junit.internal.runners.statements.RunAfters;
 import org.junit.internal.runners.statements.RunBefores;
-import org.junit.rules.RunRules;
+import org.junit.rules.ComplexRule;
+import org.junit.rules.RunMethodRules;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.notification.RunNotifier;
@@ -154,28 +155,32 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
 		validatePublicVoidNoArgMethods(Before.class, false, errors);
 		validateTestMethods(errors);
 
-		if (computeTestMethods().size() == 0)
+		if (computeTestMethods().size() == 0) {
 			errors.add(new Exception("No runnable methods"));
+		}
 	}
 
 	private void validateFields(List<Throwable> errors) {
 		for (FrameworkField each : getTestClass()
-				.getAnnotatedFields(Rule.class))
+				.getAnnotatedFields(Rule.class)) {
 			validateRuleField(each.getField(), errors);
+		}
 	}
 
 	private void validateRuleField(Field field, List<Throwable> errors) {
 		Class<?> type= field.getType();
-		if (!isMethodRule(type) && !isTestRule(type))
+		if (!isMethodRule(type) && !isTestRule(type)) {
 			errors.add(new Exception("Field " + field.getName()
 					+ " must implement MethodRule"));
-		if (!Modifier.isPublic(field.getModifiers()))
+		}
+		if (!Modifier.isPublic(field.getModifiers())) {
 			errors.add(new Exception("Field " + field.getName()
 					+ " must be public"));
+		}
 	}
 
 	private boolean isTestRule(Class<?> type) {
-		return TestRule.class.isAssignableFrom(type);
+		return ComplexRule.class.isAssignableFrom(type);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -348,10 +353,12 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
 	@SuppressWarnings("deprecation")
 	private Statement withMethodRules(FrameworkMethod method, Object target,
 			Statement result) {
-		List<TestRule> testRules= getTestRules(target);
-		for (org.junit.rules.MethodRule each : getMethodRules(target))
-			if (! testRules.contains(each))
+		List<ComplexRule> testRules= getTestRules(target);
+		for (org.junit.rules.MethodRule each : getMethodRules(target)) {
+			if (! testRules.contains(each)) {
 				result= each.apply(result, method, target);
+			}
+		}
 		return result;
 	}
 
@@ -371,21 +378,22 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
 	 */
 	private Statement withTestRules(FrameworkMethod method, Object target,
 			Statement statement) {
-		List<TestRule> testRules= getTestRules(target);
+		List<ComplexRule> testRules= getTestRules(target);
 		return testRules.isEmpty() ? statement :
-			new RunRules(statement, testRules, describeChild(method));
+			new RunMethodRules(statement, testRules, describeChild(method), target);
 	}
 
-	private List<TestRule> getTestRules(Object target) {
+	private List<ComplexRule> getTestRules(Object target) {
 		return getTestClass().getAnnotatedFieldValues(target,
-				Rule.class, TestRule.class);
+				Rule.class, ComplexRule.class);
 	}
 
 	private Class<? extends Throwable> getExpectedException(Test annotation) {
-		if (annotation == null || annotation.expected() == None.class)
+		if (annotation == null || annotation.expected() == None.class) {
 			return null;
-		else
+		} else {
 			return annotation.expected();
+		}
 	}
 
 	private boolean expectsException(Test annotation) {
@@ -393,8 +401,9 @@ public class BlockJUnit4ClassRunner extends ParentRunner<FrameworkMethod> {
 	}
 
 	private long getTimeout(Test annotation) {
-		if (annotation == null)
+		if (annotation == null) {
 			return 0;
+		}
 		return annotation.timeout();
 	}
 }

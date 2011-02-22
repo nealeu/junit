@@ -24,6 +24,7 @@ import org.junit.tests.experimental.max.MaxStarterTest;
 import org.junit.tests.experimental.parallel.ParallelClassTest;
 import org.junit.tests.experimental.parallel.ParallelMethodTest;
 import org.junit.tests.experimental.rules.ClassRulesTest;
+import org.junit.tests.experimental.rules.ComplexRulesTest;
 import org.junit.tests.experimental.rules.ExpectedExceptionRuleTest;
 import org.junit.tests.experimental.rules.ExternalResourceRuleTest;
 import org.junit.tests.experimental.rules.MethodRulesTest;
@@ -138,6 +139,7 @@ import org.junit.tests.validation.ValidationTest;
 	ParentRunnerTest.class,
 	NameRulesTest.class,
 	ClassRulesTest.class,
+	ComplexRulesTest.class,
 	ExpectedExceptionRuleTest.class,
 	TempFolderRuleTest.class,
 	ExternalResourceRuleTest.class,

@@ -15,8 +15,8 @@ import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.model.EachTestNotifier;
 import org.junit.internal.runners.statements.RunAfters;
 import org.junit.internal.runners.statements.RunBefores;
-import org.junit.rules.RunRules;
-import org.junit.rules.TestRule;
+import org.junit.rules.ComplexRule;
+import org.junit.rules.RunClassRules;
 import org.junit.runner.Description;
 import org.junit.runner.Runner;
 import org.junit.runner.manipulation.Filter;
@@ -124,8 +124,9 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 			boolean isStatic, List<Throwable> errors) {
 		List<FrameworkMethod> methods= getTestClass().getAnnotatedMethods(annotation);
 
-		for (FrameworkMethod eachTestMethod : methods)
+		for (FrameworkMethod eachTestMethod : methods) {
 			eachTestMethod.validatePublicVoidNoArg(isStatic, errors);
+		}
 	}
 
 	/** 
@@ -189,25 +190,26 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 	 *         found, or the base statement
 	 */
 	private Statement withClassRules(Statement statement) {
-		List<TestRule> classRules= classRules();
+		List<ComplexRule> classRules= classRules();
 		return classRules.isEmpty() ? statement :
-		    new RunRules(statement, classRules, getDescription());
+		    new RunClassRules(statement, classRules, getDescription(), fTestClass);
 	}
 
 	/**
 	 * @return the {@code ClassRule}s that can transform the block that runs
 	 *         each method in the tested class.
 	 */
-	protected List<TestRule> classRules() {
-		List<TestRule> results= new ArrayList<TestRule>();
-		for (FrameworkField field : classRuleFields())
+	protected List<ComplexRule> classRules() {
+		List<ComplexRule> results= new ArrayList<ComplexRule>();
+		for (FrameworkField field : classRuleFields()) {
 			results.add(getClassRule(field));
+		}
 		return results;
 	}
 
-	private TestRule getClassRule(final FrameworkField field) {
+	private ComplexRule getClassRule(final FrameworkField field) {
 		try {
-			return (TestRule) field.get(null);
+			return (ComplexRule) field.get(null);
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException(
 					"How did getAnnotatedFields return a field we couldn't access?");
@@ -236,12 +238,13 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 	}
 
 	private void runChildren(final RunNotifier notifier) {
-		for (final T each : getFilteredChildren())
- 			fScheduler.schedule(new Runnable() {			
+		for (final T each : getFilteredChildren()) {
+			fScheduler.schedule(new Runnable() {			
 				public void run() {
 					ParentRunner.this.runChild(each, notifier);
 				}
 			});
+		}
 		fScheduler.finished();
 	}
 
@@ -289,8 +292,9 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 	public Description getDescription() {
 		Description description= Description.createSuiteDescription(getName(),
 				fTestClass.getAnnotations());
-		for (T child : getFilteredChildren())
+		for (T child : getFilteredChildren()) {
 			description.addChild(describeChild(child));
+		}
 		return description;
 	}
 
@@ -317,9 +321,11 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 	public void filter(Filter filter) throws NoTestsRemainException {
 		fFilter= filter;
 
-		for (T each : getChildren())
-			if (shouldRun(each))
+		for (T each : getChildren()) {
+			if (shouldRun(each)) {
 				return;
+			}
+		}
 		throw new NoTestsRemainException();
 	}
 
@@ -334,14 +340,15 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 	private void validate() throws InitializationError {
 		List<Throwable> errors= new ArrayList<Throwable>();
 		collectInitializationErrors(errors);
-		if (!errors.isEmpty())
+		if (!errors.isEmpty()) {
 			throw new InitializationError(errors);
+		}
 	}
 
 	private List<T> getFilteredChildren() {
 		ArrayList<T> filtered= new ArrayList<T>();
-		for (T each : getChildren())
-			if (shouldRun(each))
+		for (T each : getChildren()) {
+			if (shouldRun(each)) {
 				try {
 					filterChild(each);
 					sortChild(each);
@@ -349,6 +356,8 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 				} catch (NoTestsRemainException e) {
 					// don't add it
 				}
+			}
+		}
 		Collections.sort(filtered, comparator());
 		return filtered;
 	}
@@ -358,8 +367,9 @@ public abstract class ParentRunner<T> extends Runner implements Filterable,
 	}
 
 	private void filterChild(T child) throws NoTestsRemainException {
-		if (fFilter != null)
+		if (fFilter != null) {
 			fFilter.apply(child);
+		}
 	}
 
 	private boolean shouldRun(T each) {
